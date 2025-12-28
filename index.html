@@ -10,7 +10,7 @@
 <style>
 *{box-sizing:border-box;font-family:'Poppins',sans-serif}
 body{margin:0;background:#eaf6f8}
-#app{min-height:100vh;background:url("bg-clinic.jpg.png") center/cover no-repeat}
+#app{min-height:100vh;background:url("bg-clinic.png") center/cover no-repeat}
 .overlay{background:rgba(234,246,248,.93);min-height:100vh;padding:12px}
 
 header{
@@ -135,8 +135,8 @@ header h1{margin:0;color:#1e6f78}
 
 <div class="container" id="main"></div>
 
-<audio id="coinSound" src="coin.mp3.mp3" preload="auto"></audio>
-<audio id="bgMusic" src="jeopardy-theme.mp3.mp3" preload="auto" loop></audio>
+<audio id="coinSound" src="coin.mp3" preload="auto"></audio>
+<audio id="bgMusic" src="jeopardy-theme.mp3" preload="auto" loop></audio>
 
 <script>
 /* ================= STATE ================= */
@@ -202,7 +202,7 @@ You will have thirty seconds for each question, so think fast. Let’s begin!`;
 function startIntro(){
   main.innerHTML=`
   <div class="intro">
-    <div class="doctor"><img src="doctor-mira.png.webp"></div>
+    <div class="doctor"><img src="doctor-mira.webp"></div>
     <div class="speech">
       <div id="speechBox"></div>
       <button class="primary-btn" id="startBtn">Click to Start</button>
@@ -328,3 +328,4 @@ startIntro();
 </div></div>
 </body>
 </html>
+
