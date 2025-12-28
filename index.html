@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Emergency Room Quiz – Dr. Meera</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{margin:0;background:#eaf6f8}
+#app{min-height:100vh;background:url("bg-clinic.jpg.png") center/cover no-repeat}
+.overlay{background:rgba(234,246,248,.93);min-height:100vh;padding:12px}
+
+header{
+  max-width:1100px;margin:auto;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px
+}
+header h1{margin:0;color:#1e6f78}
+.hud{display:flex;gap:10px;align-items:center}
+.wallet{
+  background:#fff;padding:8px 14px;border-radius:20px;
+  font-weight:600;color:#1e6f78;position:relative
+}
+.wallet-anim{
+  position:absolute;right:8px;top:-8px;font-size:12px;
+  animation:floatUp 1.2s ease forwards
+}
+@keyframes floatUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:0;transform:translateY(-20px)}
+}
+.icon-btn{
+  width:36px;height:36px;border:none;border-radius:50%;
+  background:#fff;cursor:pointer;font-size:18px
+}
+.container{max-width:1100px;margin:auto;padding:20px}
+
+/* INTRO */
+.intro{display:flex;gap:30px;align-items:center;flex-wrap:wrap}
+.doctor img{max-width:240px}
+.speech{
+  background:#fff;border-radius:20px;padding:24px;
+  box-shadow:0 6px 18px rgba(0,0,0,.15);
+  position:relative;flex:1
+}
+.speech:before{
+  content:"";position:absolute;left:-20px;top:40px;
+  border:10px solid transparent;border-right-color:#fff
+}
+.primary-btn{
+  margin-top:18px;padding:14px 28px;border:none;
+  background:#1fb6c9;color:#fff;border-radius:30px;
+  font-size:16px;cursor:pointer
+}
+
+/* QUIZ */
+.quiz-card{
+  background:#fff;border-radius:20px;padding:24px;
+  box-shadow:0 6px 18px rgba(0,0,0,.15);
+  animation:slideIn .5s ease
+}
+@keyframes slideIn{
+  from{transform:translateX(-40px);opacity:0}
+  to{transform:translateX(0);opacity:1}
+}
+.options{display:grid;gap:12px;margin-top:14px}
+.option-btn{
+  padding:14px;border-radius:14px;border:2px solid #cdebee;
+  background:#f7feff;cursor:pointer
+}
+.option-btn.correct{background:#d8f5e6;border-color:#2fbf71}
+.option-btn.wrong{background:#fde2e2;border-color:#e55353}
+.timer{margin-top:10px;font-weight:600;color:#e55353}
+.explanation{
+  margin-top:16px;background:#f0f9fa;
+  padding:14px;border-radius:14px
+}
+
+/* STORE */
+.store-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:20px
+}
+.item{
+  background:#fff;border-radius:18px;padding:18px;text-align:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.15);
+  cursor:pointer;position:relative
+}
+.item.selected{box-shadow:0 0 0 3px #1fb6c9}
+.item.bought{opacity:.6;cursor:not-allowed}
+.badge{
+  position:absolute;top:10px;right:10px;
+  background:#2fbf71;color:#fff;padding:4px 8px;
+  border-radius:12px;font-size:12px
+}
+.store-actions{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap}
+.secondary-btn{
+  padding:14px 26px;border:none;border-radius:30px;
+  background:#ccc;cursor:pointer
+}
+.cart-preview{
+  margin-top:16px;background:#fff;padding:12px 18px;
+  border-radius:14px;font-weight:600;color:#1e6f78
+}
+
+/* RECEIPT */
+.receipt{
+  background:#fff;max-width:600px;margin:auto;
+  padding:30px;border-radius:20px;
+  box-shadow:0 6px 18px rgba(0,0,0,.2)
+}
+.receipt h2{text-align:center;color:#1e6f78}
+.receipt ul{list-style:none;padding:0}
+.receipt li{display:flex;justify-content:space-between;margin:8px 0}
+.receipt .total{font-weight:700;margin-top:10px}
+.final-screen{text-align:center;padding:60px 20px}
+</style>
+</head>
+
+<body>
+<div id="app"><div class="overlay">
+
+<header id="header" style="display:none">
+  <h1>Emergency Room Quiz</h1>
+  <div class="hud">
+    <div class="wallet" id="wallet">Wallet: $0</div>
+    <button class="icon-btn" id="ttsBtn">🔊</button>
+    <button class="icon-btn" id="musicBtn">🎵</button>
+  </div>
+</header>
+
+<div class="container" id="main"></div>
+
+<audio id="coinSound" src="coin.mp3.mp3" preload="auto"></audio>
+<audio id="bgMusic" src="jeopardy-theme.mp3.mp3" preload="auto" loop></audio>
+
+<script>
+/* ================= STATE ================= */
+let wallet=0,qIndex=0,correctCount=0;
+let timer=null,timeLeft=30;
+let ttsEnabled=true,musicEnabled=true;
+let selectedVoice=null;
+
+const main=document.getElementById("main");
+const header=document.getElementById("header");
+const walletEl=document.getElementById("wallet");
+const coin=document.getElementById("coinSound");
+const bgMusic=document.getElementById("bgMusic");
+
+/* ================= QUESTIONS ================= */
+const questions=[ /* EXACT 5 QUESTIONS */
+{question:"What is the normal body temperature of a healthy adult?",
+options:["34°C","36.5°C","39°C"],answerIndex:1,
+explanation:"A normal body temperature is around 36.5°C to 37°C, which means the body is functioning properly.",
+whyWrong:"34°C is too low and can indicate hypothermia, while 39°C is very high and usually means fever or infection."},
+{question:"Which organ in the body pumps blood to all parts of the body?",
+options:["Lungs","Heart","Kidneys"],answerIndex:1,
+explanation:"The heart acts like a pump that moves blood throughout the body, supplying oxygen and nutrients.",
+whyWrong:"Lungs help with breathing, and kidneys filter waste from blood but do not pump it."},
+{question:"Which part of the blood carries oxygen?",
+options:["Platelets","Red Blood Cells (RBC)","Plasma"],answerIndex:1,
+explanation:"Red blood cells contain hemoglobin, which carries oxygen from the lungs to the rest of the body.",
+whyWrong:"Platelets help with blood clotting, and plasma is the liquid part of blood and does not carry oxygen directly."},
+{question:"Which bone protects the brain?",
+options:["Ribs","Skull","Spine"],answerIndex:1,
+explanation:"The skull surrounds and protects the brain from injury.",
+whyWrong:"Ribs protect the heart and lungs, while the spine protects the spinal cord, not the brain."},
+{question:"Which doctor specializes in treating bone problems?",
+options:["Cardiologist","Orthopedic doctor","Neurologist"],answerIndex:1,
+explanation:"An orthopedic doctor treats problems related to bones, joints, and muscles.",
+whyWrong:"A cardiologist treats heart problems, and a neurologist treats brain and nerve disorders."}
+];
+
+/* ================= TTS ================= */
+speechSynthesis.onvoiceschanged=()=>{
+  const v=speechSynthesis.getVoices();
+  selectedVoice=v.find(x=>/en/i.test(x.lang)&&/female|google uk/i.test(x.name))||v[0];
+};
+
+function speak(text){
+  return new Promise(res=>{
+    if(!ttsEnabled){res();return;}
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.voice=selectedVoice;u.rate=1;u.pitch=1.1;
+    u.onend=res;
+    speechSynthesis.speak(u);
+  });
+}
+
+/* ================= INTRO ================= */
+const introText=`Hi, I’m Dr. Meera. Welcome to the Emergency Room Quiz! 
+You will answer five health-related questions. Each correct answer earns you one thousand dollars. 
+If you get all five correct, you win an extra four thousand dollar bonus. 
+At the end, you can spend your earnings in the medical store to buy useful items. 
+You will have thirty seconds for each question, so think fast. Let’s begin!`;
+
+function startIntro(){
+  main.innerHTML=`
+  <div class="intro">
+    <div class="doctor"><img src="doctor-mira.png.webp"></div>
+    <div class="speech">
+      <div id="speechBox"></div>
+      <button class="primary-btn" id="startBtn">Click to Start</button>
+    </div>
+  </div>`;
+  document.getElementById("startBtn").onclick=async()=>{
+    document.getElementById("startBtn").disabled=true;
+    let i=0;
+    const box=document.getElementById("speechBox");
+    const t=setInterval(()=>{box.textContent=introText.slice(0,++i);if(i>=introText.length)clearInterval(t)},30);
+    await speak(introText);
+    box.insertAdjacentHTML("afterend",`<button class="primary-btn" onclick="startQuiz()">Begin Quiz</button>`);
+  };
+}
+
+/* ================= QUIZ ================= */
+function startQuiz(){
+  header.style.display="flex";
+  bgMusic.play();
+  showQuestion();
+}
+function showQuestion(){
+  timeLeft=30;
+  const q=questions[qIndex];
+  main.innerHTML=`
+  <div class="quiz-card">
+    <h2>${q.question}</h2>
+    <div class="options">${q.options.map((o,i)=>`<button class="option-btn" onclick="handleAnswer(${i})">${o}</button>`).join("")}</div>
+    <div class="timer" id="timer">Time left: 30s</div>
+  </div>`;
+  timer=setInterval(()=>{
+    timeLeft--;
+    document.getElementById("timer").textContent=`Time left: ${timeLeft}s`;
+    if(timeLeft<=0){clearInterval(timer);handleAnswer(null);}
+  },1000);
+}
+async function handleAnswer(i){
+  clearInterval(timer);
+  const q=questions[qIndex];
+  document.querySelectorAll(".option-btn").forEach(b=>b.disabled=true);
+  document.querySelectorAll(".option-btn")[q.answerIndex].classList.add("correct");
+  if(i===q.answerIndex){wallet+=1000;correctCount++;coin.play();animateWallet("+$1000")}
+  if(i!==null&&i!==q.answerIndex)document.querySelectorAll(".option-btn")[i].classList.add("wrong");
+  document.querySelector(".quiz-card").insertAdjacentHTML("beforeend",
+    `<div class="explanation"><p>${q.explanation}</p><p>${q.whyWrong}</p></div>`);
+  await speak(q.explanation+" "+q.whyWrong);
+  qIndex++;
+  if(qIndex===5){
+    if(correctCount===5){wallet+=4000;animateWallet("+$4000");await speak("Perfect score! Dr. Meera awards you a $4000 bonus.");}
+    goToStore();
+  }else showQuestion();
+}
+
+/* ================= STORE ================= */
+const items=[
+{id:0,name:"Stethoscope",cost:2000,icon:"🩺"},
+{id:1,name:"First Aid Kit",cost:2000,icon:"🩹"},
+{id:2,name:"Defibrillator",cost:3000,icon:"⚡"},
+{id:3,name:"Patient Monitor",cost:3000,icon:"📟"}
+];
+let selected=new Set(),bought=new Set(),receipt=[];
+
+function goToStore(){
+  main.innerHTML=`
+  <h2>Medical Store</h2>
+  <div class="store-grid" id="store"></div>
+  <div class="cart-preview" id="cart">Cart Total: $0</div>
+  <div class="store-actions">
+    <button class="primary-btn" onclick="buy()">Buy Selected</button>
+    <button class="secondary-btn" onclick="selected.clear();renderStore()">Remove All</button>
+  </div>
+  <button class="primary-btn" onclick="finish()">Finish</button>`;
+  renderStore();
+}
+function renderStore(){
+  const s=document.getElementById("store");s.innerHTML="";
+  let total=0;selected.forEach(i=>total+=items[i].cost);
+  document.getElementById("cart").textContent=`Cart Total: $${total}`;
+  items.forEach(it=>{
+    const d=document.createElement("div");
+    d.className="item"+(selected.has(it.id)?" selected":"")+(bought.has(it.id)?" bought":"");
+    d.innerHTML=`<div style="font-size:36px">${it.icon}</div><h4>${it.name}</h4><p>$${it.cost}</p>${bought.has(it.id)?'<div class="badge">Owned ✓</div>':''}`;
+    d.onclick=()=>{if(!bought.has(it.id)){selected.has(it.id)?selected.delete(it.id):selected.add(it.id);renderStore();}};
+    s.appendChild(d);
+  });
+}
+function buy(){
+  let total=0;selected.forEach(i=>total+=items[i].cost);
+  if(wallet>=total){
+    wallet-=total;coin.play();animateWallet("-$"+total);
+    selected.forEach(i=>{bought.add(i);receipt.push(items[i]);});
+    selected.clear();renderStore();
+  }else alert("Not enough funds");
+}
+
+/* ================= RECEIPT + FINISH ================= */
+function finish(){
+  bgMusic.pause();header.style.display="none";
+  main.innerHTML=`
+  <div class="receipt">
+    <h2>Receipt</h2>
+    <ul>${receipt.map(i=>`<li><span>${i.name}</span><span>$${i.cost}</span></li>`).join("")}</ul>
+    <div class="total">Remaining Wallet: $${wallet}</div>
+    <button class="primary-btn" onclick="thank()">Continue</button>
+  </div>`;
+}
+function thank(){
+  main.innerHTML=`<div class="final-screen"><h1>Thanks for completing the Quiz</h1><p>Dr. Meera: Stay healthy!</p><button class="primary-btn" onclick="location.reload()">Play Again</button></div>`;
+}
+
+/* ================= HELPERS ================= */
+function animateWallet(t){
+  walletEl.textContent=`Wallet: $${wallet}`;
+  const s=document.createElement("span");s.className="wallet-anim";s.textContent=t;
+  walletEl.appendChild(s);setTimeout(()=>s.remove(),1200);
+}
+document.getElementById("ttsBtn").onclick=()=>{ttsEnabled=!ttsEnabled};
+document.getElementById("musicBtn").onclick=()=>{musicEnabled?bgMusic.pause():bgMusic.play();musicEnabled=!musicEnabled};
+
+startIntro();
+</script>
+
+</div></div>
+</body>
+</html>
